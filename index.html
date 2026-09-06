@@ -1,0 +1,1364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>LeafCheck — Plant Disease Scanner</title>
+
+<!-- PWA setup -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#1F3A2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LeafCheck">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --forest: #1F3A2E;
+    --forest-deep: #12201A;
+    --sage: #EFF1E4;
+    --sage-dark: #D2DAB8;
+    --leaf: #4F7A5A;
+    --leaf-dark: #3A6047;
+    --leaf-light: #86AA7F;
+    --ochre: #D69A3C;
+    --ochre-dark: #B47C22;
+    --clay: #C15B3D;
+    --sun: #F2C14E;
+    --white: #FFFEFA;
+    --danger: #A6432F;
+    --font-display: 'Fraunces', serif;
+    --font-body: 'Inter', sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    min-height: 100vh;
+  }
+
+  body {
+    color: var(--forest-deep);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    background-color: var(--sage);
+    background-image:
+      radial-gradient(circle at 12% 8%, rgba(214,154,60,0.16) 0%, transparent 40%),
+      radial-gradient(circle at 90% 4%, rgba(79,122,90,0.20) 0%, transparent 38%),
+      radial-gradient(circle at 100% 60%, rgba(193,91,61,0.10) 0%, transparent 45%),
+      radial-gradient(circle at -5% 70%, rgba(79,122,90,0.14) 0%, transparent 42%);
+    background-attachment: fixed;
+  }
+
+  .wrap {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 32px 20px 60px;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* ---------- Header ---------- */
+  header {
+    margin-bottom: 26px;
+    position: relative;
+  }
+
+  .hero-badge {
+    width: 64px;
+    height: 64px;
+    margin-bottom: 14px;
+  }
+
+  header h1 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 32px;
+    margin: 0;
+    color: var(--forest);
+    letter-spacing: -0.01em;
+    line-height: 1.05;
+  }
+
+  header p {
+    margin: 10px 0 0;
+    font-size: 15.5px;
+    color: var(--leaf-dark);
+    max-width: 32ch;
+    line-height: 1.5;
+  }
+
+  /* ---------- Cards ---------- */
+  .card {
+    background: var(--white);
+    border-radius: 22px;
+    padding: 22px;
+    border: 1px solid var(--sage-dark);
+    box-shadow: 0 1px 0 rgba(31,58,46,0.03);
+  }
+
+  /* ---------- Capture zone ---------- */
+  .capture-zone {
+    display: block;
+    position: relative;
+    padding: 38px 22px 30px;
+    border-radius: 24px;
+    background: linear-gradient(165deg, #FFFEFA 0%, #FBF6E9 100%);
+    border: 2px solid var(--sage-dark);
+    cursor: pointer;
+    overflow: hidden;
+    transition: border-color 0.2s ease, transform 0.15s ease;
+    text-align: center;
+  }
+
+  .capture-zone:active { transform: scale(0.99); }
+
+  .capture-zone:hover {
+    border-color: var(--ochre);
+  }
+
+  .capture-zone .deco-leaf {
+    position: absolute;
+    opacity: 0.5;
+  }
+  .capture-zone .deco-leaf.one { top: -18px; right: -14px; width: 90px; transform: rotate(12deg); }
+  .capture-zone .deco-leaf.two { bottom: -22px; left: -20px; width: 80px; transform: rotate(-20deg); opacity: 0.35;}
+
+  .capture-zone .icon-circle {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    background: var(--leaf);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 6px 16px rgba(79,122,90,0.28);
+  }
+
+  .capture-zone .icon-circle svg {
+    width: 30px;
+    height: 30px;
+    color: var(--white);
+  }
+
+  .capture-zone .primary-text {
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 600;
+    color: var(--forest);
+    margin: 0 0 6px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .capture-zone .secondary-text {
+    font-size: 14px;
+    color: #6B7A5F;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+    line-height: 1.5;
+  }
+
+  input[type="file"] { display: none; }
+
+  .tip-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .tip-chip {
+    font-size: 12.5px;
+    color: var(--leaf-dark);
+    background: rgba(79,122,90,0.10);
+    padding: 6px 12px;
+    border-radius: 100px;
+    font-weight: 500;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: none;
+    border-radius: 14px;
+    padding: 15px 22px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 15.5px;
+    cursor: pointer;
+    width: 100%;
+    transition: transform 0.08s ease, background 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .btn:active { transform: scale(0.98); }
+
+  .btn-primary {
+    background: var(--leaf);
+    color: var(--white);
+    box-shadow: 0 6px 16px rgba(79,122,90,0.3);
+  }
+  .btn-primary:hover { background: var(--leaf-dark); }
+  .btn-primary:disabled {
+    background: #A9BBAC;
+    box-shadow: none;
+    cursor: not-allowed;
+  }
+
+  .btn-secondary {
+    background: var(--white);
+    color: var(--forest);
+    border: 1.5px solid var(--sage-dark);
+  }
+  .btn-secondary:hover { border-color: var(--leaf); }
+
+  /* ---------- Preview ---------- */
+  .preview-wrap { margin-top: 4px; }
+
+  .preview-img {
+    width: 100%;
+    border-radius: 20px;
+    display: block;
+    max-height: 320px;
+    object-fit: cover;
+    border: 1px solid var(--sage-dark);
+  }
+
+  .preview-caption {
+    font-size: 13.5px;
+    color: var(--leaf-dark);
+    text-align: center;
+    margin: 12px 0 0;
+    font-style: italic;
+    font-family: var(--font-display);
+  }
+
+  .preview-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+  }
+  .preview-actions .btn { width: auto; flex: 1; }
+
+  /* ---------- Loading ---------- */
+  .loading-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 36px 20px 10px;
+  }
+
+  .loading-leaf {
+    width: 54px;
+    height: 54px;
+    margin-bottom: 18px;
+    animation: sway 1.6s ease-in-out infinite;
+    transform-origin: bottom center;
+  }
+
+  @keyframes sway {
+    0%, 100% { transform: rotate(-6deg); }
+    50% { transform: rotate(6deg); }
+  }
+
+  .loading-state p {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--forest);
+    margin: 0 0 4px;
+  }
+
+  .loading-state .sub {
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    color: #6B7A5F;
+    font-weight: 400;
+    margin: 0;
+  }
+
+  /* ---------- Results ---------- */
+  .result { margin-top: 18px; }
+
+  .confidence-pill {
+    display: inline-block;
+    font-size: 12.5px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 100px;
+    margin-bottom: 14px;
+  }
+  .conf-high { background: #E1EEDE; color: var(--leaf-dark); }
+  .conf-moderate { background: #FBEFD9; color: var(--ochre-dark); }
+  .conf-low { background: #F5E3DE; color: var(--danger); }
+
+  .result h2 {
+    font-family: var(--font-display);
+    font-size: 25px;
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: var(--forest);
+    line-height: 1.25;
+  }
+
+  .result .plant-line {
+    font-size: 14.5px;
+    color: #6B7A5F;
+    margin: 0 0 20px;
+  }
+
+  .section-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-display);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--forest);
+    margin: 24px 0 10px;
+  }
+
+  .section-label .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ochre);
+    flex-shrink: 0;
+  }
+
+  .symptom-list, .prevention-list {
+    margin: 0;
+    padding-left: 20px;
+    font-size: 14.5px;
+    line-height: 1.65;
+    color: var(--forest-deep);
+  }
+  .symptom-list li, .prevention-list li { margin-bottom: 5px; }
+
+  .steps { list-style: none; margin: 0; padding: 0; counter-reset: step; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 13px;
+    margin-bottom: 14px;
+    font-size: 14.5px;
+    line-height: 1.6;
+  }
+  .steps li::before {
+    content: counter(step);
+    flex-shrink: 0;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: var(--leaf);
+    color: var(--white);
+    font-size: 12.5px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+
+  .disclaimer {
+    margin-top: 26px;
+    padding: 15px 16px;
+    background: var(--sage);
+    border-radius: 14px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #4A5A42;
+  }
+
+  .error-box {
+    margin-top: 16px;
+    padding: 18px;
+    background: #FBEAE5;
+    border: 1px solid #E9C4B8;
+    border-radius: 18px;
+    color: var(--danger);
+    font-size: 14.5px;
+    line-height: 1.55;
+  }
+
+  .error-box strong {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 16px;
+    margin-bottom: 4px;
+  }
+
+  .scan-again { margin-top: 22px; }
+
+  /* ---------- Tab bar ---------- */
+  .tab-bar {
+    display: flex;
+    gap: 6px;
+    background: rgba(210,218,184,0.45);
+    padding: 5px;
+    border-radius: 14px;
+    margin-bottom: 20px;
+  }
+  .tab-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--leaf-dark);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+  .tab-btn.active {
+    background: var(--white);
+    color: var(--forest);
+    box-shadow: 0 2px 6px rgba(31,58,46,0.08);
+  }
+
+  /* ---------- History ---------- */
+  .history-empty {
+    text-align: center;
+    padding: 40px 16px;
+  }
+  .history-empty svg { width: 46px; height: 46px; color: var(--leaf-light); margin-bottom: 12px; }
+  .history-empty p {
+    font-family: var(--font-display);
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--forest);
+    margin: 0 0 4px;
+  }
+  .history-empty span {
+    font-size: 13.5px;
+    color: #6B7A5F;
+  }
+
+  .history-list { display: flex; flex-direction: column; gap: 10px; }
+
+  .history-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--white);
+    border: 1px solid var(--sage-dark);
+    border-radius: 16px;
+    padding: 10px;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    transition: border-color 0.15s ease;
+  }
+  .history-item:hover { border-color: var(--leaf); }
+
+  .history-thumb {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--sage);
+  }
+
+  .history-info { flex: 1; min-width: 0; }
+  .history-info .h-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 15.5px;
+    color: var(--forest);
+    margin: 0 0 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .history-info .h-meta {
+    font-size: 12.5px;
+    color: #6B7A5F;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .history-actions { margin-top: 16px; text-align: center; }
+  .history-actions button {
+    background: none;
+    border: none;
+    color: var(--danger);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 8px;
+  }
+
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--leaf-dark);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 0;
+    margin-bottom: 14px;
+  }
+
+  /* ---------- Language selector ---------- */
+  .lang-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+  .lang-row svg { width: 17px; height: 17px; color: var(--leaf-dark); flex-shrink: 0; }
+  .lang-row select {
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--forest);
+    background: var(--white);
+    border: 1.5px solid var(--sage-dark);
+    border-radius: 10px;
+    padding: 7px 10px;
+    cursor: pointer;
+  }
+  .lang-row select:disabled { opacity: 0.6; cursor: wait; }
+  .lang-row .lang-loading {
+    font-size: 12.5px;
+    color: var(--leaf-dark);
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <svg class="hero-badge" viewBox="0 0 64 64" fill="none">
+      <circle cx="32" cy="32" r="30" fill="#E1EEDE"/>
+      <path d="M32 46C22 46 15 39 15 29c0-1 6-15 17-15s17 14 17 15c0 10-7 17-17 17Z" fill="#4F7A5A"/>
+      <path d="M32 46V22" stroke="#3A6047" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="26" cy="30" r="2.5" fill="#D69A3C"/>
+      <circle cx="37" cy="35" r="2" fill="#D69A3C"/>
+    </svg>
+    <h1>LeafCheck</h1>
+    <p id="taglineText">Show us the leaf that's worrying you, and we'll help you figure out what's going on.</p>
+  </header>
+
+  <div class="lang-row">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10"/>
+      <line x1="2" y1="12" x2="22" y2="12"/>
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10Z"/>
+    </svg>
+    <select id="langSelect"></select>
+    <span class="lang-loading" id="langLoading" style="display:none;">Translating…</span>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab-btn" id="tabScan">New scan</button>
+    <button class="tab-btn" id="tabHistory">History</button>
+  </div>
+
+  <div id="app-body"></div>
+</div>
+
+<script>
+(function () {
+  const appBody = document.getElementById('app-body');
+  let selectedBase64 = null;
+  let selectedMediaType = null;
+
+  // ---------- Language system ----------
+  const LANGUAGES = [
+    { code: 'en', name: 'English' },
+    { code: 'tw', name: 'Twi' },
+    { code: 'fat', name: 'Fante' },
+    { code: 'ga', name: 'Ga' },
+    { code: 'ee', name: 'Ewe' },
+    { code: 'dag', name: 'Dagbani' },
+    { code: 'dga', name: 'Dagaare' },
+    { code: 'nzi', name: 'Nzema' },
+    { code: 'gjn', name: 'Gonja' },
+    { code: 'xsm', name: 'Kasem' },
+    { code: 'dgm', name: 'Dangme' }
+  ];
+
+  const STRINGS_EN = {
+    tagline: "Show us the leaf that's worrying you, and we'll help you figure out what's going on.",
+    tabNew: "New scan",
+    tabHistory: "History",
+    captureTitle: "Snap a photo of the leaf",
+    captureSub: "Fill the frame with the affected part, in daylight if you can.",
+    tipClose: "🔍 Get close",
+    tipLight: "☀️ Good light",
+    tipOneLeaf: "🍃 One leaf at a time",
+    previewCaption: "Good — this is the one we'll look at.",
+    retake: "Choose another",
+    diagnoseBtn: "What's wrong with it?",
+    loadingMsgs: [
+      "Taking a close look...",
+      "Checking the spots and edges...",
+      "Comparing what we see to known signs...",
+      "Almost there..."
+    ],
+    loadingSub: "This usually takes a few seconds",
+    loadingHistory: "Loading your past scans...",
+    errorTitle: "Hmm, that didn't go through",
+    errorGeneric: "Please check your connection and try again in a moment.",
+    errorFileRead: "We couldn't open that photo. Mind trying another one?",
+    tryAgain: "Try again",
+    noticedLabel: "What we noticed",
+    todoLabel: "What to do about it",
+    preventionLabel: "Keeping it from happening again",
+    disclaimer: "This is a first read from a photo, not a lab result. If this is a valuable crop or the problem is spreading quickly, it's worth checking with a local agricultural extension officer before treating.",
+    scanAnother: "Scan another leaf",
+    backToHistory: "← Back to history",
+    historyEmptyTitle: "No scans yet",
+    historyEmptySub: "Your past leaf scans will show up here.",
+    clearHistory: "Clear history",
+    confidenceWord: "confidence",
+    installBannerText: "Install LeafCheck on this phone for quicker access",
+    installBtn: "Install",
+    plantUnknown: "Plant type not confirmed",
+    diseaseUnknown: "We're not quite sure"
+  };
+
+  let currentLang = 'en';
+  let currentStrings = STRINGS_EN;
+  const memoryCache = { en: STRINGS_EN };
+
+  function S(key) {
+    return (currentStrings && currentStrings[key] !== undefined) ? currentStrings[key] : STRINGS_EN[key];
+  }
+
+  function currentLangName() {
+    const found = LANGUAGES.find(l => l.code === currentLang);
+    return found ? found.name : 'English';
+  }
+
+  async function translateUIStrings(langName) {
+    const systemPrompt = `Translate the values of the following JSON object into ${langName}, a language spoken in Ghana. Keep every JSON key exactly as given, in English — only translate the values. For the "loadingMsgs" array, translate each item and keep the array the same length. Respond ONLY with the raw translated JSON object, no markdown fences, no commentary.`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1500,
+        system: systemPrompt,
+        messages: [
+          { role: "user", content: JSON.stringify(STRINGS_EN) }
+        ]
+      })
+    });
+
+    if (!response.ok) throw new Error("Translation request failed: " + response.status);
+    const data = await response.json();
+    const textBlock = (data.content || []).find(b => b.type === 'text');
+    if (!textBlock) throw new Error("No translation text returned.");
+    const cleaned = textBlock.text.replace(/```json|```/g, "").trim();
+    const parsed = JSON.parse(cleaned);
+    return Object.assign({}, STRINGS_EN, parsed);
+  }
+
+  function updateStaticChrome() {
+    const tagline = document.getElementById('taglineText');
+    if (tagline) tagline.textContent = S('tagline');
+    if (tabScanBtn) tabScanBtn.textContent = S('tabNew');
+    if (tabHistoryBtn) tabHistoryBtn.textContent = S('tabHistory');
+  }
+
+  async function handleLanguageChange(code) {
+    const select = document.getElementById('langSelect');
+    const loadingLabel = document.getElementById('langLoading');
+
+    if (code === 'en') {
+      currentLang = 'en';
+      currentStrings = STRINGS_EN;
+      persistLanguage();
+      updateStaticChrome();
+      renderCaptureState();
+      setActiveTab('scan');
+      return;
+    }
+
+    if (memoryCache[code]) {
+      currentLang = code;
+      currentStrings = memoryCache[code];
+      persistLanguage();
+      updateStaticChrome();
+      renderCaptureState();
+      setActiveTab('scan');
+      return;
+    }
+
+    select.disabled = true;
+    loadingLabel.style.display = 'inline';
+
+    // Check persisted cache first
+    try {
+      const cached = await window.storage.get('scanhistory:lang_' + code, false);
+      const parsed = JSON.parse(cached.value);
+      memoryCache[code] = parsed;
+      currentLang = code;
+      currentStrings = parsed;
+      persistLanguage();
+      updateStaticChrome();
+      renderCaptureState();
+      setActiveTab('scan');
+      select.disabled = false;
+      loadingLabel.style.display = 'none';
+      return;
+    } catch (e) {
+      // not cached yet, fall through to live translation
+    }
+
+    try {
+      const langName = LANGUAGES.find(l => l.code === code).name;
+      const translated = await translateUIStrings(langName);
+      memoryCache[code] = translated;
+      currentLang = code;
+      currentStrings = translated;
+      persistLanguage();
+
+      try {
+        await window.storage.set('scanhistory:lang_' + code, JSON.stringify(translated), false);
+      } catch (e) {
+        console.error('Could not cache translation:', e);
+      }
+
+      updateStaticChrome();
+      renderCaptureState();
+      setActiveTab('scan');
+    } catch (err) {
+      console.error('Translation failed:', err);
+      select.value = currentLang;
+    } finally {
+      select.disabled = false;
+      loadingLabel.style.display = 'none';
+    }
+  }
+
+  async function persistLanguage() {
+    try {
+      await window.storage.set('scanhistory:selected_language', currentLang, false);
+    } catch (e) {
+      console.error('Could not save language preference:', e);
+    }
+  }
+
+  function populateLangSelect() {
+    const select = document.getElementById('langSelect');
+    select.innerHTML = LANGUAGES.map(l => `<option value="${l.code}">${l.name}</option>`).join('');
+    select.value = currentLang;
+    select.addEventListener('change', (e) => handleLanguageChange(e.target.value));
+  }
+
+  const LOADING_MESSAGES = STRINGS_EN.loadingMsgs;
+
+  function render(node) {
+    appBody.innerHTML = '';
+    appBody.appendChild(node);
+  }
+
+  function el(html) {
+    const t = document.createElement('template');
+    t.innerHTML = html.trim();
+    return t.content.firstChild;
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  const deco = (cls) => `
+    <svg class="deco-leaf ${cls}" viewBox="0 0 64 64" fill="none">
+      <path d="M32 54C18 54 8 44 8 30 8 28 17 8 32 8s24 20 24 22c0 14-10 24-24 24Z" fill="#4F7A5A"/>
+    </svg>`;
+
+  // ---------- Tab bar ----------
+  const tabScanBtn = document.getElementById('tabScan');
+  const tabHistoryBtn = document.getElementById('tabHistory');
+
+  function setActiveTab(tab) {
+    tabScanBtn.classList.toggle('active', tab === 'scan');
+    tabHistoryBtn.classList.toggle('active', tab === 'history');
+  }
+
+  tabScanBtn.addEventListener('click', () => {
+    setActiveTab('scan');
+    renderCaptureState();
+  });
+  tabHistoryBtn.addEventListener('click', () => {
+    setActiveTab('history');
+    renderHistoryState();
+  });
+
+  // ---------- Storage helpers ----------
+  function resizeImage(dataUrl, maxDim, quality) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height && width > maxDim) {
+          height = Math.round(height * (maxDim / width));
+          width = maxDim;
+        } else if (height > maxDim) {
+          width = Math.round(width * (maxDim / height));
+          height = maxDim;
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+      img.onerror = reject;
+      img.src = dataUrl;
+    });
+  }
+
+  async function saveScanToHistory(result, dataUrl) {
+    try {
+      const thumb = await resizeImage(dataUrl, 260, 0.6);
+      const id = 'scan_' + Date.now();
+      const record = { id, timestamp: Date.now(), image: thumb, result };
+
+      await window.storage.set('scanhistory:' + id, JSON.stringify(record), false);
+
+      let ids = [];
+      try {
+        const idxRes = await window.storage.get('scanhistory:index', false);
+        ids = JSON.parse(idxRes.value);
+      } catch (e) {
+        ids = [];
+      }
+      ids.unshift(id);
+      await window.storage.set('scanhistory:index', JSON.stringify(ids), false);
+    } catch (e) {
+      console.error('Could not save to history:', e);
+    }
+  }
+
+  function formatWhen(ts) {
+    const diffMs = Date.now() - ts;
+    const mins = Math.round(diffMs / 60000);
+    if (mins < 1) return 'Just now';
+    if (mins < 60) return mins + 'm ago';
+    const hrs = Math.round(mins / 60);
+    if (hrs < 24) return hrs + 'h ago';
+    const days = Math.round(hrs / 24);
+    if (days < 7) return days + 'd ago';
+    return new Date(ts).toLocaleDateString();
+  }
+
+  // ---------- STATE: history ----------
+  async function renderHistoryState() {
+    const loadingContainer = el(`
+      <div class="card loading-state">
+        <div class="sub">${escapeHtml(S('loadingHistory'))}</div>
+      </div>
+    `);
+    render(loadingContainer);
+
+    let ids = [];
+    try {
+      const idxRes = await window.storage.get('scanhistory:index', false);
+      ids = JSON.parse(idxRes.value);
+    } catch (e) {
+      ids = [];
+    }
+
+    if (!ids || ids.length === 0) {
+      const empty = el(`
+        <div class="card history-empty">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/>
+            <circle cx="12" cy="13" r="4"/>
+          </svg>
+          <p>${escapeHtml(S('historyEmptyTitle'))}</p>
+          <span>${escapeHtml(S('historyEmptySub'))}</span>
+        </div>
+      `);
+      render(empty);
+      return;
+    }
+
+    const records = [];
+    for (const id of ids) {
+      try {
+        const res = await window.storage.get('scanhistory:' + id, false);
+        records.push(JSON.parse(res.value));
+      } catch (e) {
+        // skip missing/corrupted entries
+      }
+    }
+
+    const items = records.map((r, i) => `
+      <button class="history-item" data-idx="${i}">
+        <img class="history-thumb" src="${r.image}" alt="">
+        <div class="history-info">
+          <p class="h-title">${escapeHtml(r.result.likely_disease || 'Unknown')}</p>
+          <div class="h-meta">
+            <span class="confidence-pill ${confidenceClass(r.result.confidence)}" style="margin:0; padding:2px 9px; font-size:11px;">${escapeHtml(r.result.confidence || 'Moderate')}</span>
+            <span>${formatWhen(r.timestamp)}</span>
+          </div>
+        </div>
+      </button>
+    `).join('');
+
+    const container = el(`
+      <div>
+        <div class="history-list">${items}</div>
+        <div class="history-actions">
+          <button id="clearHistoryBtn">${escapeHtml(S('clearHistory'))}</button>
+        </div>
+      </div>
+    `);
+    render(container);
+
+    container.querySelectorAll('.history-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.getAttribute('data-idx'), 10);
+        const r = records[idx];
+        renderResultState(r.result, r.image, { fromHistory: true });
+      });
+    });
+
+    const clearBtn = container.querySelector('#clearHistoryBtn');
+    if (clearBtn) {
+      clearBtn.addEventListener('click', async () => {
+        try {
+          for (const id of ids) {
+            await window.storage.delete('scanhistory:' + id, false);
+          }
+          await window.storage.delete('scanhistory:index', false);
+        } catch (e) {
+          console.error('Could not clear history:', e);
+        }
+        renderHistoryState();
+      });
+    }
+  }
+
+  // ---------- STATE: capture ----------
+  function renderCaptureState() {
+    const container = el(`
+      <div>
+        <label class="capture-zone" id="dropZone">
+          ${deco('one')}
+          ${deco('two')}
+          <div class="icon-circle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+          </div>
+          <p class="primary-text">${escapeHtml(S('captureTitle'))}</p>
+          <p class="secondary-text">${escapeHtml(S('captureSub'))}</p>
+          <input type="file" id="fileInput" accept="image/*" capture="environment">
+        </label>
+        <div class="tip-row">
+          <span class="tip-chip">${escapeHtml(S('tipClose'))}</span>
+          <span class="tip-chip">${escapeHtml(S('tipLight'))}</span>
+          <span class="tip-chip">${escapeHtml(S('tipOneLeaf'))}</span>
+        </div>
+      </div>
+    `);
+    render(container);
+
+    const input = container.querySelector('#fileInput');
+    input.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleFile(e.target.files[0]);
+      }
+    });
+  }
+
+  function handleFile(file) {
+    selectedMediaType = file.type || 'image/jpeg';
+    const reader = new FileReader();
+    reader.onload = () => {
+      selectedBase64 = reader.result.split(',')[1];
+      renderPreviewState(reader.result);
+    };
+    reader.onerror = () => {
+      renderErrorState(S('errorFileRead'));
+    };
+    reader.readAsDataURL(file);
+  }
+
+  // ---------- STATE: preview ----------
+  function renderPreviewState(dataUrl) {
+    const container = el(`
+      <div>
+        <div class="preview-wrap">
+          <img class="preview-img" src="${dataUrl}" alt="Selected leaf photo">
+          <p class="preview-caption">${escapeHtml(S('previewCaption'))}</p>
+          <div class="preview-actions">
+            <button class="btn btn-secondary" id="retakeBtn">${escapeHtml(S('retake'))}</button>
+            <button class="btn btn-primary" id="diagnoseBtn">${escapeHtml(S('diagnoseBtn'))}</button>
+          </div>
+        </div>
+      </div>
+    `);
+    render(container);
+
+    container.querySelector('#retakeBtn').addEventListener('click', renderCaptureState);
+    container.querySelector('#diagnoseBtn').addEventListener('click', runDiagnosis);
+  }
+
+  // ---------- STATE: loading ----------
+  let loadingInterval = null;
+  function renderLoadingState() {
+    const msgs = S('loadingMsgs');
+    const container = el(`
+      <div class="card loading-state">
+        <svg class="loading-leaf" viewBox="0 0 64 64" fill="none">
+          <path d="M32 54C18 54 8 44 8 30 8 28 17 8 32 8s24 20 24 22c0 14-10 24-24 24Z" fill="#4F7A5A"/>
+          <path d="M32 54V16" stroke="#3A6047" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <p id="loadingMsg">${escapeHtml(msgs[0])}</p>
+        <p class="sub">${escapeHtml(S('loadingSub'))}</p>
+      </div>
+    `);
+    render(container);
+
+    let i = 0;
+    clearInterval(loadingInterval);
+    loadingInterval = setInterval(() => {
+      i = (i + 1) % msgs.length;
+      const msgEl = document.getElementById('loadingMsg');
+      if (msgEl) msgEl.textContent = msgs[i];
+    }, 1600);
+  }
+
+  // ---------- STATE: error ----------
+  function renderErrorState(message) {
+    clearInterval(loadingInterval);
+    const container = el(`
+      <div>
+        <div class="error-box">
+          <strong>${escapeHtml(S('errorTitle'))}</strong>
+          ${escapeHtml(message)}
+        </div>
+        <div class="scan-again">
+          <button class="btn btn-primary" id="tryAgainBtn">${escapeHtml(S('tryAgain'))}</button>
+        </div>
+      </div>
+    `);
+    render(container);
+    container.querySelector('#tryAgainBtn').addEventListener('click', renderCaptureState);
+  }
+
+  // ---------- STATE: result ----------
+  function confidenceClass(level) {
+    const l = (level || '').toLowerCase();
+    if (l.includes('high')) return 'conf-high';
+    if (l.includes('low')) return 'conf-low';
+    return 'conf-moderate';
+  }
+
+  function renderResultState(data, dataUrl, options) {
+    options = options || {};
+    clearInterval(loadingInterval);
+
+    const symptomItems = (data.symptoms_observed || [])
+      .map(s => `<li>${escapeHtml(s)}</li>`).join('');
+    const treatmentItems = (data.treatment_steps || [])
+      .map(s => `<li>${escapeHtml(s)}</li>`).join('');
+    const preventionItems = (data.prevention_tips || [])
+      .map(s => `<li>${escapeHtml(s)}</li>`).join('');
+
+    const backLink = options.fromHistory
+      ? `<button class="back-link" id="backToHistoryBtn">${escapeHtml(S('backToHistory'))}</button>`
+      : '';
+
+    const bottomButton = `<button class="btn btn-secondary" id="scanAnotherBtn">${escapeHtml(S('scanAnother'))}</button>`;
+
+    const container = el(`
+      <div>
+        ${backLink}
+        <img class="preview-img" src="${dataUrl}" alt="Scanned leaf photo" style="margin-bottom:18px;">
+        <div class="card result">
+          <span class="confidence-pill ${confidenceClass(data.confidence)}">${escapeHtml(data.confidence || 'Moderate')} ${escapeHtml(S('confidenceWord'))}</span>
+          <h2>${escapeHtml(data.likely_disease || S('diseaseUnknown'))}</h2>
+          <p class="plant-line">${escapeHtml(data.plant_identified || S('plantUnknown'))}</p>
+
+          ${symptomItems ? `
+          <div class="section-label"><span class="dot"></span>${escapeHtml(S('noticedLabel'))}</div>
+          <ul class="symptom-list">${symptomItems}</ul>` : ''}
+
+          ${treatmentItems ? `
+          <div class="section-label"><span class="dot"></span>${escapeHtml(S('todoLabel'))}</div>
+          <ol class="steps">${treatmentItems}</ol>` : ''}
+
+          ${preventionItems ? `
+          <div class="section-label"><span class="dot"></span>${escapeHtml(S('preventionLabel'))}</div>
+          <ul class="prevention-list">${preventionItems}</ul>` : ''}
+
+          <div class="disclaimer">
+            ${escapeHtml(S('disclaimer'))}
+          </div>
+        </div>
+        <div class="scan-again">
+          ${bottomButton}
+        </div>
+      </div>
+    `);
+    render(container);
+
+    container.querySelector('#scanAnotherBtn').addEventListener('click', () => {
+      setActiveTab('scan');
+      renderCaptureState();
+    });
+
+    const backBtn = container.querySelector('#backToHistoryBtn');
+    if (backBtn) {
+      backBtn.addEventListener('click', () => {
+        setActiveTab('history');
+        renderHistoryState();
+      });
+    }
+  }
+
+  // ---------- API call ----------
+  async function runDiagnosis() {
+    if (!selectedBase64) return;
+    renderLoadingState();
+
+    const currentPreviewUrl = 'data:' + selectedMediaType + ';base64,' + selectedBase64;
+
+    // Stage 1: try the real disease-detection backend (crop.health via our
+    // own /api/diagnose proxy, which keeps the API key private). If this
+    // endpoint isn't reachable — e.g. the app is being opened as a local
+    // file instead of deployed on Vercel — we fall back to vision-only
+    // diagnosis further down, so the app still works either way.
+    let structuredData = null;
+    try {
+      const proxyResponse = await fetch('/api/diagnose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ imageBase64: selectedBase64 })
+      });
+      if (proxyResponse.ok) {
+        structuredData = await proxyResponse.json();
+      } else {
+        console.warn('crop.health proxy returned an error — falling back to vision-only diagnosis.');
+      }
+    } catch (e) {
+      console.warn('crop.health proxy unreachable (expected if not yet deployed to Vercel) — falling back to vision-only diagnosis.', e);
+    }
+
+    try {
+      const parsed = structuredData
+        ? await diagnoseFromStructuredData(structuredData)
+        : await diagnoseFromVisionOnly();
+
+      renderResultState(parsed, currentPreviewUrl);
+      saveScanToHistory(parsed, currentPreviewUrl);
+
+    } catch (err) {
+      console.error("Diagnosis error:", err);
+      renderErrorState(S('errorGeneric'));
+    }
+  }
+
+  function languageInstructionText() {
+    return currentLang !== 'en'
+      ? `\n\nWrite every string value in your JSON response in ${currentLangName()}, a language spoken in Ghana. Keep the JSON keys themselves in English exactly as specified below.`
+      : '';
+  }
+
+  const RESULT_SHAPE = `{
+  "plant_identified": "short guess at the plant/crop type, or 'Unclear from photo'",
+  "likely_disease": "most likely disease or condition name, plain language, or 'No clear signs of disease' if the leaf looks healthy",
+  "confidence": "High, Moderate, or Low",
+  "symptoms_observed": ["short phrase", "short phrase", "..."],
+  "treatment_steps": ["short actionable step", "short actionable step", "..."],
+  "prevention_tips": ["short tip", "short tip", "..."]
+}`;
+
+  // ---------- Stage 2a: turn real crop.health data into our result shape ----------
+  async function diagnoseFromStructuredData(structuredData) {
+    const result = structuredData.result || {};
+    const summary = {
+      is_healthy: result.is_healthy ? result.is_healthy.binary : undefined,
+      crop_suggestions: (result.crop && result.crop.suggestions || []).slice(0, 2).map(s => ({
+        name: s.name,
+        probability: s.probability
+      })),
+      disease_suggestions: (result.disease && result.disease.suggestions || []).slice(0, 3).map(s => ({
+        name: s.name,
+        probability: s.probability,
+        common_names: s.details ? s.details.common_names : undefined,
+        description: s.details ? s.details.description : undefined,
+        cause: s.details ? s.details.cause : undefined,
+        treatment: s.details ? s.details.treatment : undefined
+      }))
+    };
+
+    const systemPrompt = `You are a warm, practical agricultural assistant helping farmers understand what might be affecting their crops. You have been given structured diagnostic data from crop.health, a plant pathology identification service — not a raw photo. Base your answer strictly on this data; do not invent diseases or details that aren't present in it.
+
+Respond ONLY with a raw JSON object (no markdown fences, no preamble, no extra text) with exactly this shape:
+${RESULT_SHAPE}
+
+Keep every string short, plain, and usable by a farmer with no scientific background. Prefer the highest-probability crop and disease suggestions. Turn any listed treatment info (biological, chemical, prevention) into clear plain-language steps — cultural/mechanical controls first, then chemical options by general name, not brand names. If is_healthy is true or no disease suggestions are present, say so plainly and set confidence based on the data's own probabilities.${languageInstructionText()}`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: "Here is the structured diagnostic data:\n" + JSON.stringify(summary)
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) throw new Error("Request failed with status " + response.status);
+    const data = await response.json();
+    const textBlock = (data.content || []).find(b => b.type === 'text');
+    if (!textBlock) throw new Error("No response text returned.");
+    const cleaned = textBlock.text.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleaned);
+  }
+
+  // ---------- Stage 2b: fallback — vision-only diagnosis (no backend needed) ----------
+  async function diagnoseFromVisionOnly() {
+    const systemPrompt = `You are a warm, practical agricultural assistant helping farmers understand what might be affecting their plants, based on a single photo of a leaf. You are not a certified plant pathologist and cannot run lab tests, so give your best visual read, not a certain diagnosis.
+
+Respond ONLY with a raw JSON object (no markdown fences, no preamble, no extra text) with exactly this shape:
+${RESULT_SHAPE}
+
+Keep every string short, plain, and usable by a farmer with no scientific background. Use practical, low-cost, locally accessible treatment suggestions where possible (cultural/mechanical controls first, then common fungicide/pesticide classes by general name, not brand names). If the photo doesn't show a plant leaf clearly, say so honestly in likely_disease and set confidence to Low.${languageInstructionText()}`;
+
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: systemPrompt,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: selectedMediaType,
+                  data: selectedBase64
+                }
+              },
+              {
+                type: "text",
+                text: "Here is a photo of a plant leaf. Diagnose it following the JSON format in your instructions."
+              }
+            ]
+          }
+        ]
+      })
+    });
+
+    if (!response.ok) throw new Error("Request failed with status " + response.status);
+    const data = await response.json();
+    const textBlock = (data.content || []).find(b => b.type === 'text');
+    if (!textBlock) throw new Error("No response text returned.");
+    const cleaned = textBlock.text.replace(/```json|```/g, "").trim();
+    return JSON.parse(cleaned);
+  }
+
+  // ---------- PWA: service worker + install prompt ----------
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('service-worker.js').catch((err) => {
+        console.log('Service worker registration skipped:', err);
+      });
+    });
+  }
+
+  let deferredInstallPrompt = null;
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    showInstallButton();
+  });
+
+  function showInstallButton() {
+    if (document.getElementById('installBar')) return;
+    const bar = el(`
+      <div id="installBar" style="
+        display:flex; align-items:center; justify-content:space-between; gap:12px;
+        background: var(--forest); color: var(--white); padding: 12px 16px;
+        border-radius: 14px; margin-bottom: 18px; font-size: 13.5px;">
+        <span>${escapeHtml(S('installBannerText'))}</span>
+        <button id="installBtn" style="
+          background: var(--ochre); color: var(--forest-deep); border: none;
+          border-radius: 10px; padding: 8px 14px; font-weight: 700;
+          font-size: 13px; cursor: pointer; flex-shrink:0;">${escapeHtml(S('installBtn'))}</button>
+      </div>
+    `);
+    document.querySelector('.wrap').insertBefore(bar, document.querySelector('.tab-bar'));
+    document.getElementById('installBtn').addEventListener('click', async () => {
+      bar.remove();
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+      }
+    });
+  }
+
+  // init
+  async function init() {
+    populateLangSelect();
+
+    try {
+      const saved = await window.storage.get('scanhistory:selected_language', false);
+      const code = saved.value;
+      if (code && code !== 'en') {
+        const select = document.getElementById('langSelect');
+        select.value = code;
+        await handleLanguageChange(code);
+        return;
+      }
+    } catch (e) {
+      // no saved preference, default to English
+    }
+
+    setActiveTab('scan');
+    renderCaptureState();
+  }
+
+  init();
+})();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "name": "LeafCheck — Plant Disease Scanner",
+  "short_name": "LeafCheck",
+  "description": "Scan a leaf, get a plain-language read on what might be affecting your plant.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#EFF1E4",
+  "theme_color": "#1F3A2E",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
