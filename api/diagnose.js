@@ -54,6 +54,9 @@ export default async function handler(req, res) {
 
   } catch (err) {
     console.error('Proxy error calling crop.health:', err);
-    return res.status(500).json({ error: 'Internal server error while contacting crop.health.' });
+    return res.status(500).json({
+      error: 'Internal server error while contacting crop.health.',
+      detail: err.message
+    });
   }
 }
