@@ -27,7 +27,7 @@ export default async function handler(req, res) {
 
   try {
     const kindwiseResponse = await fetch(
-      'https://crop.kindwise.com/api/v1/identification?details=common_names,description,treatment,classification,cause',
+      'https://crop.kindwise.com/api/v1/identification?details=common_names,description,treatment,taxonomy,wiki_url',
       {
         method: 'POST',
         headers: {
@@ -35,13 +35,25 @@ export default async function handler(req, res) {
           'Api-Key': apiKey
         },
         body: JSON.stringify({
-          images: [imageBase64],
-          similar_images: false
+          images: [imageBase64]
         })
       }
     );
 
-    const data = await kindwiseResponse.json();
+    const rawText = await kindwiseResponse.text();
+    let data;
+    try {
+      data = JSON.parse(rawText);
+    } catch (parseErr) {
+      // crop.health sent back something that isn't JSON (an error page,
+      // a plain-text message, etc.) — surface it as-is so we can see
+      // exactly what went wrong instead of crashing.
+      return res.status(kindwiseResponse.status || 500).json({
+        error: 'crop.health returned a non-JSON response.',
+        status: kindwiseResponse.status,
+        rawBody: rawText.slice(0, 500)
+      });
+    }
 
     if (!kindwiseResponse.ok) {
       return res.status(kindwiseResponse.status).json({
